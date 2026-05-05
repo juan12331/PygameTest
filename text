@@ -1,0 +1,249 @@
+import pygame
+import random
+
+pygame.mixer.pre_init(44100, -16, 2, 512)  
+pygame.init()
+pygame.mixer.init()
+
+GRID_SIZE = 30  # DOBRADO
+TILE = 25
+
+WIDTH = GRID_SIZE * TILE
+HEIGHT = GRID_SIZE * TILE
+
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+clock = pygame.time.Clock()
+
+# CORES
+PLAYER_COLOR = (160, 32, 240)
+DRAGON_COLOR = (255, 0, 0)
+OGRE_COLOR = (0, 200, 0)
+ATTACK_COLOR = (120, 120, 120)
+PLAYER_ATTACK_COLOR = (200, 0, 200)
+BG = (0, 0, 0)
+
+# 🎵 MUSICA
+pygame.mixer.music.load("music.mp3")
+pygame.mixer.music.set_volume(0.5)
+pygame.mixer.music.play(-1)
+
+# 🔊 SOM
+attack_sound = pygame.mixer.Sound("attack.mp3")
+attack_sound.set_volume(0.8)
+
+# ================= PLAYER =================
+
+class Player:
+    def __init__(self):
+        self.x = GRID_SIZE // 2
+        self.y = GRID_SIZE - 1
+        self.dir = (0, -1)
+        self.attack_fx = []
+
+    def move(self, dx, dy, enemies):
+        nx = self.x + dx
+        ny = self.y + dy
+
+        if 0 <= nx < GRID_SIZE and 0 <= ny < GRID_SIZE:
+            for e in enemies:
+                if (e.x, e.y) == (nx, ny):
+                    return False
+            self.x = nx
+            self.y = ny
+            self.dir = (dx, dy)
+            return True
+        return False
+
+    def attack(self, enemies):
+        tx = self.x + self.dir[0]
+        ty = self.y + self.dir[1]
+
+        self.attack_fx = [(tx, ty)]  # efeito visual
+
+        attack_sound.stop()  # evita sobreposição bugada
+        attack_sound.play()
+
+        for e in enemies:
+            if (e.x, e.y) == (tx, ty):
+                enemies.remove(e)
+                return True
+        return False
+
+# ================= ENEMY =================
+
+class Enemy:
+    def __init__(self, x, y, type):
+        self.x = x
+        self.y = y
+        self.type = type
+        self.turn_counter = 0
+
+    def move(self, player, enemies):
+        dx, dy = 0, 0
+
+        if self.x < player.x: dx = 1
+        elif self.x > player.x: dx = -1
+        elif self.y < player.y: dy = 1
+        elif self.y > player.y: dy = -1
+
+        nx = self.x + dx
+        ny = self.y + dy
+
+        if not (0 <= nx < GRID_SIZE and 0 <= ny < GRID_SIZE):
+            return
+
+        if (nx, ny) == (player.x, player.y):
+            return
+
+        for e in enemies:
+            if e != self and (e.x, e.y) == (nx, ny):
+                return
+
+        self.x, self.y = nx, ny
+
+    def attack_tiles(self):
+        tiles = []
+
+        if self.type == "ogre":
+            for dx in [-1,0,1]:
+                for dy in [-1,0,1]:
+                    if dx != 0 or dy != 0:
+                        tiles.append((self.x+dx, self.y+dy))
+
+        elif self.type == "dragon":
+            for i in range(1,3):
+                tiles += [
+                    (self.x+i, self.y),
+                    (self.x-i, self.y),
+                    (self.x, self.y+i),
+                    (self.x, self.y-i)
+                ]
+
+        return tiles
+
+    def can_attack(self):
+        if self.type == "ogre":
+            return self.turn_counter % 2 == 0
+        if self.type == "dragon":
+            return self.turn_counter % 3 == 0
+
+# ================= JOGO =================
+
+def spawn_enemy():
+    t = random.choice(["ogre","dragon"])
+    while True:
+        x = random.randint(0, GRID_SIZE-1)
+        y = random.randint(0, GRID_SIZE-3)
+        if (x,y) != (player.x, player.y):
+            enemies.append(Enemy(x,y,t))
+            break
+
+def reset_game():
+    global player, enemies, score, game_over
+    player = Player()
+    enemies = []
+    score = 0
+    game_over = False
+
+    pygame.mixer.music.play(-1)
+
+    for _ in range(3):
+        spawn_enemy()
+    
+
+reset_game()
+
+# ================= DRAW =================
+
+def draw():
+    screen.fill(BG)
+
+    # ataques inimigos
+    for e in enemies:
+        if e.can_attack():
+            for tx, ty in e.attack_tiles():
+                if 0 <= tx < GRID_SIZE and 0 <= ty < GRID_SIZE:
+                    pygame.draw.rect(screen, ATTACK_COLOR,
+                        (tx*TILE, ty*TILE, TILE, TILE))
+
+    # ataque player
+    for tx, ty in player.attack_fx:
+        if 0 <= tx < GRID_SIZE and 0 <= ty < GRID_SIZE:
+            pygame.draw.rect(screen, PLAYER_ATTACK_COLOR,
+                (tx*TILE, ty*TILE, TILE, TILE))
+
+    player.attack_fx = []  # limpa efeito
+
+    # player
+    pygame.draw.rect(screen, PLAYER_COLOR,
+        (player.x*TILE, player.y*TILE, TILE, TILE))
+
+    # inimigos
+    for e in enemies:
+        color = DRAGON_COLOR if e.type=="dragon" else OGRE_COLOR
+        pygame.draw.rect(screen, color,
+            (e.x*TILE, e.y*TILE, TILE, TILE))
+
+    pygame.display.update()
+
+# ================= TURN =================
+
+def enemy_turn():
+    global game_over
+
+    for e in enemies:
+        e.turn_counter += 1
+
+        if e.can_attack():
+            if (player.x, player.y) in e.attack_tiles():
+                game_over = True
+                pygame.mixer.music.stop()  # 👈 PARA A MÚSICA
+        else:
+            e.move(player, enemies)
+
+# ================= LOOP =================
+
+running = True
+
+while running:
+    clock.tick(10)
+
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+
+        if event.type == pygame.KEYDOWN:
+
+            if game_over and event.key == pygame.K_r:
+                reset_game()
+
+            if not game_over:
+                action = False
+
+                if event.key == pygame.K_w:
+                    action = player.move(0,-1,enemies)
+                elif event.key == pygame.K_s:
+                    action = player.move(0,1,enemies)
+                elif event.key == pygame.K_a:
+                    action = player.move(-1,0,enemies)
+                elif event.key == pygame.K_d:
+                    action = player.move(1,0,enemies)
+                elif event.key == pygame.K_x:
+                    if player.attack(enemies):
+                        score += 1
+                        for _ in range(random.randint(1,3)):
+                            spawn_enemy()
+                        action = True
+
+                if action:
+                    enemy_turn()
+
+    draw()
+
+    if game_over:
+        font = pygame.font.SysFont(None, 30)  # fonte menor
+        text = font.render(f"GAME OVER - Score: {score} (R)", True, (255,255,255))
+        screen.blit(text, (20, HEIGHT//2))
+        pygame.display.update()
+
+pygame.quit()
