@@ -1,3 +1,5 @@
+# ================= Initial part ================= kenji
+
 import pygame
 import random
 
@@ -31,7 +33,7 @@ pygame.mixer.music.play(-1)
 attack_sound = pygame.mixer.Sound("attack.mp3")
 attack_sound.set_volume(0.8)
 
-# ================= PLAYER =================
+# ================= PLAYER ================= kenji
 
 class Player:
     def __init__(self):
@@ -46,7 +48,7 @@ class Player:
 
         if 0 <= nx < GRID_SIZE and 0 <= ny < GRID_SIZE:
             for e in enemies:
-                if (e.x, e.y) == (nx, ny):
+                if (e.x, e.y) == (nx, ny): #ESTUDAR
                     return False
             self.x = nx
             self.y = ny
