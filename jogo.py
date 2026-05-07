@@ -25,17 +25,19 @@ DRAGON_COLOR = (255, 0, 0)
 OGRE_COLOR = (0, 200, 0)
 ATTACK_COLOR = (120, 120, 120)
 PLAYER_ATTACK_COLOR = (200, 0, 200)
+SUMMONER_COLOR = (255, 0, 127)
 BG = (0, 0, 0)
 
 # 🎵 MUSICA
 pygame.mixer.music.load("music.mp3")  # carrega música
-pygame.mixer.music.set_volume(0.5)  # volume da música
+pygame.mixer.music.set_volume(0.4)  # volume da música
 pygame.mixer.music.play(-1)  # toca em loop infinito
 
 # 🔊 SOM
 attack_sound = pygame.mixer.Sound("attack.mp3")  # carrega som de ataque
 attack_sound.set_volume(0.8)  # volume do som
-
+summon_sound = pygame.mixer.Sound("summon.mp3")
+summon_sound.set_volume(2)
 # ================= PLAYER =================
 
 class Player:  # classe do jogador
@@ -83,6 +85,27 @@ class Enemy:  # classe dos inimigos
         self.y = y  # posição y
         self.type = type  # tipo (ogre ou dragon)
         self.turn_counter = 0  # contador de turnos
+
+    def summon(self):
+
+        summon_sound.stop()
+        summon_sound.play()
+
+        for dx in [-3,0,3]:
+            for dy in [-3,0,3]:
+
+                if dx != 0 or dy != 0:
+
+                    sx = self.x + dx
+                    sy = self.y + dy
+
+                    # verifica se está dentro da tela
+                    if 0 <= sx < GRID_SIZE and 0 <= sy < GRID_SIZE:
+
+                        n = random.randint(0,10)
+
+                        if n > 7:
+                            spawn_enemy(sx, sy, False)
 
     def move(self, player, enemies):  # movimento do inimigo
         dx, dy = 0, 0
@@ -135,14 +158,21 @@ class Enemy:  # classe dos inimigos
             return self.turn_counter % 2 == 0  # a cada 2 turnos
         if self.type == "dragon":
             return self.turn_counter % 3 == 0  # a cada 3 turnos
+        if self.type == "summoner":
+            return self.turn_counter % 20 == 0
 
 # ================= JOGO =================
 
-def spawn_enemy():  # cria inimigo aleatório
-    t = random.choice(["ogre","dragon"])  # escolhe tipo
+def spawn_enemy(x = 0, y = 0, summoner=True):  # cria inimigo aleatório
+    global score
+    if score > 5 and summoner:
+        t = random.choice(["ogre","dragon","summoner"])  # escolhe tipo
+    else:
+        t = random.choice(["ogre","dragon"])  # escolhe tipo
     while True:
-        x = random.randint(0, GRID_SIZE-1)
-        y = random.randint(0, GRID_SIZE-3)
+        if not x != 0 and not y != 0:
+            x = random.randint(0, GRID_SIZE-1)
+            y = random.randint(0, GRID_SIZE-3)
         if (x,y) != (player.x, player.y):  # evita spawn no player
             enemies.append(Enemy(x,y,t))
             break
@@ -189,7 +219,12 @@ def draw():  # desenha tudo
 
     # desenha inimigos
     for e in enemies:
-        color = DRAGON_COLOR if e.type=="dragon" else OGRE_COLOR
+        if e.type=="dragon":
+            color = DRAGON_COLOR      
+        elif e.type=="summoner":
+            color = SUMMONER_COLOR
+        else:
+             color = OGRE_COLOR
         pygame.draw.rect(screen, color,
             (e.x*TILE, e.y*TILE, TILE, TILE))
 
@@ -203,12 +238,19 @@ def enemy_turn():  # turno dos inimigos
     for e in enemies:
         e.turn_counter += 1  # incrementa turno
 
-        if e.can_attack():  
-            if (player.x, player.y) in e.attack_tiles():  
+
+  
+
+        if e.can_attack():
+            if e.type == "summoner":
+                e.summon()
+                enemies.remove(e)
+            elif (player.x, player.y) in e.attack_tiles():  
                 game_over = True  # mata player
                 pygame.mixer.music.stop()  # para música
         else:
-            e.move(player, enemies)  # move inimigo
+            if not e.type == "summoner":
+                e.move(player, enemies)  # move inimigo
 
 # ================= LOOP =================
 
