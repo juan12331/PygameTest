@@ -1,5 +1,12 @@
+<<<<<<< HEAD
 import pygame  # importa a biblioteca pygame (gráficos, teclado, som)
 import random  # importa funções de aleatoriedade
+=======
+# ================= Initial part ================= kenji
+
+import pygame
+import random
+>>>>>>> 8586a98221433c09e31cfa0e19cbc010b4c1d9b9
 
 pygame.mixer.pre_init(44100, -16, 2, 512)  
 # configura o sistema de áudio antes de iniciar (qualidade, canais, buffer)
@@ -34,11 +41,18 @@ pygame.mixer.music.set_volume(0.4)  # volume da música
 pygame.mixer.music.play(-1)  # toca em loop infinito
 
 # 🔊 SOM
+<<<<<<< HEAD
 attack_sound = pygame.mixer.Sound("attack.mp3")  # carrega som de ataque
 attack_sound.set_volume(0.8)  # volume do som
 summon_sound = pygame.mixer.Sound("summon.mp3")
 summon_sound.set_volume(2)
 # ================= PLAYER =================
+=======
+attack_sound = pygame.mixer.Sound("attack.mp3")
+attack_sound.set_volume(0.8)
+
+# ================= PLAYER ================= kenji
+>>>>>>> 8586a98221433c09e31cfa0e19cbc010b4c1d9b9
 
 class Player:  # classe do jogador
     def __init__(self):
@@ -51,12 +65,20 @@ class Player:  # classe do jogador
         nx = self.x + dx  # nova posição x
         ny = self.y + dy  # nova posição y
 
+<<<<<<< HEAD
         if 0 <= nx < GRID_SIZE and 0 <= ny < GRID_SIZE:  
         # verifica limite da tela
             for e in enemies:  
                 if (e.x, e.y) == (nx, ny):  
                     return False  # bloqueia se tiver inimigo
             self.x = nx  # aplica movimento
+=======
+        if 0 <= nx < GRID_SIZE and 0 <= ny < GRID_SIZE:
+            for e in enemies:
+                if (e.x, e.y) == (nx, ny): #ESTUDAR
+                    return False
+            self.x = nx
+>>>>>>> 8586a98221433c09e31cfa0e19cbc010b4c1d9b9
             self.y = ny
             self.dir = (dx, dy)  # atualiza direção
             return True  # movimento válido
@@ -300,4 +322,8 @@ while running:
         screen.blit(text, (20, HEIGHT//2))  # desenha texto
         pygame.display.update()
 
+<<<<<<< HEAD
 pygame.quit()  # encerra pygame
+=======
+pygame.quit()
+>>>>>>> 8586a98221433c09e31cfa0e19cbc010b4c1d9b9
