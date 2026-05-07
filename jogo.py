@@ -300,4 +300,4 @@ while running:
         screen.blit(text, (20, HEIGHT//2))  # desenha texto
         pygame.display.update()
 
-pygame.quit()  # encerra pygame
+pygame.quit()  # encerra pygam
